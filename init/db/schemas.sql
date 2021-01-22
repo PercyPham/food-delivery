@@ -1,0 +1,1 @@
+-- This script will be executed when database docker container run for the first time
