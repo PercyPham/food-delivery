@@ -10,9 +10,10 @@ import (
 type Job interface {
 	Execute(ctx context.Context) error
 	State() JobState
+	HasRunCount() int
 }
 
-// JobState type
+// JobState depicts state of a job
 type JobState int
 
 const (
@@ -36,6 +37,10 @@ var jobStateText = map[JobState]string{
 	StateCommpleted:            "Completed",
 }
 
+// JobStateText returns a text for the job state.
+//   It returns the empty string if the code is unknown.
+func JobStateText(state JobState) string { return jobStateText[state] }
+
 type job struct {
 	handler JobHandler
 
@@ -45,7 +50,7 @@ type job struct {
 	lastRunAt   time.Time
 }
 
-// JobHandler def
+// JobHandler function structure
 type JobHandler func(ctx context.Context) error
 
 const (
@@ -64,7 +69,8 @@ func New(h JobHandler) Job {
 
 func (j *job) Execute(ctx context.Context) error {
 	if j.hasRunCount >= j.maxRunCount {
-		return errors.New("Has reached max run count") // TODO: change to apperror
+		j.state = StateFailedWithMaxRunCount
+		return errors.New("Job has reached max run count") // TODO: change to apperror
 	}
 
 	j.state = StateRunning
@@ -87,4 +93,5 @@ func (j *job) Execute(ctx context.Context) error {
 	return err
 }
 
-func (j *job) State() JobState { return j.state }
+func (j *job) State() JobState  { return j.state }
+func (j *job) HasRunCount() int { return j.hasRunCount }

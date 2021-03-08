@@ -7,7 +7,11 @@ import (
 )
 
 func TestCreateNewJob(t *testing.T) {
-	_ = jobs.New(func(ctx context.Context) error {
+	job := jobs.New(func(ctx context.Context) error {
 		return nil
 	})
+
+	if job == nil {
+		t.Errorf("Error creating new job")
+	}
 }
