@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: ./build/docker/Dockerfile.dev
+    container_name: food-delivery-app
+    tty: true
+    depends_on:
+      - db
+    volumes:
+      - ../../cmd:/app/cmd
+      - ../../internal:/app/internal
+    ports:
+      - 5000:5000
+    networks:
+      - food-delivery
+
+  db:
+    image: bitnami/mysql:8.0.23
+    container_name: food-delivery-db
+    environment:
+      MYSQL_ROOT_PASSWORD: fooddelivery
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: food_delivery
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    volumes:
+      - db_volumn:/bitnami/mysql/data
+      - ../../init/db:/docker-entrypoint-initdb.d
+    networks:
+      - food-delivery
+
+  db-gui:
+    image: phpmyadmin/phpmyadmin
+    container_name: food-delivery-db-gui
+    depends_on:
+      - db
+    environment:
+      MYSQL_ROOT_PASSWORD: fooddelivery
+      PMA_HOST: food-delivery-db
+      PMA_PORT: 3306
+      PMA_USER: admin
+      PMA_PASSWORD: password
+    ports:
+      - 8081:80
+    restart: unless-stopped
+    networks:
+      - food-delivery
+
+networks:
+  food-delivery:
+    driver: bridge
+
+volumes:
+  db_volumn:

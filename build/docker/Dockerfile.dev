@@ -1,0 +1,15 @@
+FROM golang:1.16-alpine
+
+WORKDIR /app
+
+# init temporary mod file to install "air" command
+RUN go mod init temporary
+# install "air" command
+RUN go get -u github.com/cosmtrek/air@v1.21.2
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+CMD ["air", "-c", "build/docker/dev/.air.toml"]
