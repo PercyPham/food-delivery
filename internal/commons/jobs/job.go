@@ -10,7 +10,7 @@ import (
 type Job interface {
 	Execute(ctx context.Context) error
 	State() JobState
-	HasRunCount() int
+	RunCount() int
 }
 
 // JobState depicts state of a job
@@ -42,10 +42,10 @@ var jobStateText = map[JobState]string{
 func JobStateText(state JobState) string { return jobStateText[state] }
 
 type job struct {
-	handler JobHandler
+	f JobHandler
 
 	state       JobState
-	hasRunCount int
+	runCount    int
 	maxRunCount int
 	lastRunAt   time.Time
 }
@@ -57,41 +57,40 @@ const (
 	defaultMaxRunCount = 3
 )
 
-// New instance of Job
-func New(h JobHandler) Job {
+// NewJob instance of Job
+func NewJob(f JobHandler) Job {
 	return &job{
-		handler:     h,
+		f:           f,
 		state:       StateInit,
-		hasRunCount: 0,
+		runCount:    0,
 		maxRunCount: defaultMaxRunCount,
 	}
 }
 
 func (j *job) Execute(ctx context.Context) error {
-	if j.hasRunCount >= j.maxRunCount {
+	if j.runCount >= j.maxRunCount {
 		j.state = StateFailedWithMaxRunCount
 		return errors.New("Job has reached max run count") // TODO: change to apperror
 	}
 
 	j.state = StateRunning
 
-	j.hasRunCount++
+	j.runCount++
 
-	err := j.handler(ctx)
+	err := j.f(ctx)
 
-	if err == nil {
-		j.state = StateCommpleted
-		return nil
-	}
-
-	if j.hasRunCount < j.maxRunCount {
+	if err != nil {
+		if j.runCount >= j.maxRunCount {
+			j.state = StateFailedWithMaxRunCount
+			return err
+		}
 		j.state = StateFailed
 		return err
 	}
 
-	j.state = StateFailedWithMaxRunCount
-	return err
+	j.state = StateCommpleted
+	return nil
 }
 
-func (j *job) State() JobState  { return j.state }
-func (j *job) HasRunCount() int { return j.hasRunCount }
+func (j *job) State() JobState { return j.state }
+func (j *job) RunCount() int   { return j.runCount }
